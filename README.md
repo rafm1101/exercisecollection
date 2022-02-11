@@ -61,4 +61,5 @@ Definitions in Kopf are set by the makros
 * amsthm - exercise style and enumeration defined via theorems
 * verbatim - redirects printings
 * framed - print source and id of an exercise in framed environment
+* shortlst - for inline enumerations, package manager may not find it
 * some more for mathematical functionality
