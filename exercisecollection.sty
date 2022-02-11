@@ -1,0 +1,469 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  Paket für Aufgabensammlungen
+%
+%		exercisecollection.sty
+%		v2.0 vom 06.02.2022
+%
+%		Mathias Rafler
+%			mrafler@o2mail.de
+%
+%	! Alles noch im Teststadium, dementsprechend auf seltsame Verhaltensweisen gefaßt sein
+% ! Check for Updates
+%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Basic functionality of the package exercisecollection:
+%		- handling of preferences
+%		- load exercise files and prepare contents for use
+%			\LoadExerciseFile
+%		- print exercises
+%			\PrintExercise
+%		- handling of temporary files for separate solutions and additional material
+%			\IniFiles
+%		- print separate solutons
+%			\includesolutions
+%
+% IDEAS:- Konsequent auf LaTeX3 umstellen, zumindest Verquickung von LaTeX3 und LaTeX2e 
+% 		  reduzieren
+%		- Makro fuer Komplettuebersicht schreiben, inklusive Nennung des Schluessels
+%		- Umweg ueber externe Datei ersetzen durch direkte Ausgabe
+%
+% DONE: (v1.0) 	- Ausgabe des Schluessels falls gewuenscht (Standard: keine Ausgabe)
+%				- Ausgabe der Info falls gewuenscht (Standard: keine Ausgabe)
+% DONE: (v2.0) 	- Definition der Umgebungen ausgelagert
+%%%%%%%%%%%%%%%%%%%%%%%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\NeedsTeXFormat{LaTeX2e}% LaTeX 2.09 can't be used (nor non-LaTeX)
+[1994/12/01]% LaTeX date must December 1994 or later
+\ProvidesPackage{exercisecollection}[2022/02/08 v2.0 LaTeX package Exercise Collection]
+\RequirePackage{xparse}
+% l3regex obsolete and moved to epxl3
+%\RequirePackage{l3regex}
+\RequirePackage{expl3}
+\RequirePackage{ifthen}
+\RequirePackage{shortlst}
+\RequirePackage{enumitem}
+\RequirePackage{nicefrac}
+
+\RequirePackage{exercisecollectionenvs}
+
+%%%%%%%%%%%%%%%%%%%%%%%
+% Initialize Package
+%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%
+% Load style from .exc file if option is given while loading package -- otherwise use pre-define style
+\DeclareOption*{%
+	\InputIfFileExists{\CurrentOption .exc}%
+		{\typeout{ExcColl: Use definition file \CurrentOption .exc for styAufgabe}}%
+		{\typeout{ExcColl: Did not find style definition file \CurrentOption ..exc - use standard styAufgabe}%
+	}%
+}
+\ProcessOptions\relax
+\newcommand{\opti}{\CurrentOption}
+
+\ExplSyntaxOn
+
+%%%%%%%%%%%%%%%%%%%%%%%
+% Define and set Keys for custom handling
+%  - extype: current style of exercise, multiple styles usable
+%  - points: print points
+%  - solution: whether and where to print content of solution environment
+%  - solutionname: name of the solution
+%  - sketch: same as solution for sketch environment
+%  - sketchname
+%  - solutiontitle: title of the solutionsection
+%  - addmaterialtitle: title of the section for the additional material
+%  - identifier: whether to print the id of this exercise (relevant for internal use)
+%  - information: whether to print the content of the info environment
+%  - stud: whether to print starred exercises
+%%%%% TO BE ADDED: HANDLING FOR INFO AND ADDMATERIAL
+\keys_define:nn { excoll } {
+	extype .tl_set:N = \l_ex_extype_tl,
+	extype .default:n = exc,
+
+	points .bool_set:N = \l_ex_points_bool,
+	points .default:n = true,
+
+	solution .choices:nn = { none, immediate, separate }
+		{ 
+			\tl_set_eq:NN \l_ex_solution_tl \l_keys_choice_tl
+		},
+	solution / unknown .code:n = 
+		{
+			\msg_warning:nnxxx { Exercise~Collection~Keys } { Unknown~Choice }
+				{ solution } % Name of choice key
+				{ none, immediate, separate } % Valid choices
+				{ \exp_not:n {#1} } % Invalid choice given
+			\tl_set_eq:NN \l_ex_sketch_tl { separate }
+		},
+	solution .default:n = separate,
+
+	solutionname .tl_set:N = \l_ex_solname_tl,
+	solutionname .default:n = L\"osung~zu~,
+
+	sketch .choices:nn = { none, immediate, separate }
+		{ 
+			\tl_set_eq:NN \l_ex_sketch_tl \l_keys_choice_tl
+		},
+	sketch / unknown .code:n = 
+		{ 
+			\msg_warning:nnxxx { Exercise~Collection~Keys } { Unknown~Choice of Key }
+				{ sketch } % Name of choice key
+				{ none, immediate, separate } % Valid choices
+				{ \exp_not:n {#1} } % Invalid choice given
+			\tl_set_eq:NN \l_ex_sketch_tl { none }
+		},
+	sketch .default:n = none,
+
+	sketchname .tl_set:N = \l_ex_skename_tl,
+	sketchname .default:n = L\"osungsskizze~zu~,
+	
+	solutiontitle .tl_set:N = \l_ex_solutiontitle_tl,
+	solutiontitle .default:n = L\"osungsvorschl\"age,
+	
+	addmaterialname .tl_set:N = \l_ex_matname_tl,
+	addmaterialname .default:n = Ad,
+
+	addmaterialtitle .tl_set:N = \l_ex_addmaterialtitle_tl,
+	addmaterialtitle .default:n = Zusatzmaterial,
+
+	identifier .bool_set:N = \l_ex_print_identifier_bool,
+	identifier .default:n = false,
+	
+	information .bool_set:N = \l_ex_print_information_bool,
+	information .default:n = false,
+	
+	stud .bool_set:N = \l_ex_studversion_bool,
+	stud .default:n = false
+}
+
+%%%%%%%
+% Initialize preferences using standard values
+\keys_set:nn { excoll }
+	{
+		extype, points, solution, solutionname, sketch, sketchname, solutiontitle, addmaterialtitle, identifier, information, stud
+	}
+
+%%%%%%%
+% User-Level Macro: Set keys, Get keys just for checking
+\DeclareDocumentCommand \SetExCollProp { m }
+	{ 
+		\keys_set_known:nn { excoll } { #1 } 
+	}
+	
+\DeclareDocumentCommand \GetExCollProp { }
+	{ 
+		\par
+		[Set~Properties:~extype~(\tl_use:N \l_ex_extype_tl),~
+					points~(\bool_if:NTF \l_ex_points_bool { TRUE } { FALSE }),~
+					solution~(\tl_use:N \l_ex_solution_tl),~
+					solutionname~(\tl_use:N \l_ex_solname_tl),~
+					sketch~(\tl_use:N \l_ex_sketch_tl),~
+					sketchname~(\tl_use:N \l_ex_skename_tl),~
+					identifier~(\bool_if:NTF \l_ex_print_identifier_bool { TRUE } { FALSE }),~
+					information~(\bool_if:NTF \l_ex_print_information_bool { TRUE } { FALSE }),~
+					studversion~(\bool_if:NTF \l_ex_studversion_bool { TRUE } { FALSE })]
+	}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%
+% Load Database Files containing the exercises in 
+% {<identifier>}{<exercise>}{<identifier>}{<exercise>}... style
+%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%
+% Internal Variables for Reading exercise files
+\prop_new:N \ex_task_list_prop
+\bool_new:N \ex_file_eof_bool
+\ior_new:N \ex_file_ior
+
+%%%%%%%
+% User-Level Macro: Read File and save to token list: Parameter - filename without .tex
+\NewDocumentCommand{\LoadExerciseFile}{ m m }
+	{
+		\ex_load:nn { #1 } { #2 }
+	}
+
+%%%%%%%
+% Internal Macro: Read File and save to token list
+\cs_generate_variant:Nn \tl_if_eq:nnTF { VnTF }
+\cs_generate_variant:Nn \iow_term:n { v }
+
+\cs_new:Npn \ex_load:nn #1#2
+{
+	% Start group for using \obeylines locally	
+	\group_begin:	
+	% Initialize token list, eof boolean, input stream
+	\tl_clear_new:N \l_ex_task_tl
+	\tl_clear_new:N \l_tmpa_tl
+	\tl_clear_new:N \l_tmpb_tl
+	\bool_set_false:N \ex_file_eof_bool
+	% Open File #1 and read if successful, otherwise print warning
+	% need to change catcodes such that makros are not expanded
+	\catcode`\^^M\active
+	\ior_open:NnTF \ex_file_ior
+		{ #2 } 
+		{
+			% read first curly braces enclosed content and store internally in \l_ex_task_tl
+			\ior_get:NN \ex_file_ior \l_ex_task_tl
+			\bool_do_until:Nn \ex_file_eof_bool
+				{
+					\ior_get:NN \ex_file_ior \l_tmpa_tl
+					\ior_if_eof:NTF \ex_file_ior
+						{ 	% true, stop further reading
+							\bool_set_true:N \ex_file_eof_bool %EOF\par 
+						} { % false, check for paragraph
+							\tl_if_eq:VnTF {\l_tmpa_tl}{\par} 
+								{ \relax }{
+									% check if a pair id/exercise found
+%									[TL-COUNT~on~reading: \tl_count:N \l_tmpa_tl] 
+									\int_compare:nTF { \tl_count:N \l_tmpa_tl = 2 }
+										{ 	% true, 
+											\ex_get_item:NNn \l_tmpa_tl \l_tmpb_tl { 1 }
+											\tl_put_right:NV \l_ex_task_tl { \l_tmpb_tl }
+								}{} 
+							}
+						}
+				}
+			\ior_close:N \ex_file_ior
+			% add pair to exercise list
+			\prop_gput:NnV \ex_task_list_prop {#1} \l_ex_task_tl
+			% message success
+			\iow_term:x {Datei~#2.tex~eingelesen~mit~\tl_count:N \l_ex_task_tl ~Datensaetzen.}
+			% create global list 
+			\tl_clear_new:c { l__source_#1_tl }
+			\tl_gset:cn { g__source_#1_tl }{ #2 }
+			\iow_term:v { g__source_#1_tl }
+		} { Datei~#2.tex~nicht~gefunden. }
+%%%%% BEGIN TEST LINE
+%	Ausgabe~dieser~Tokens:~
+%	\tl_to_str:N \l_ex_task_tl --
+%	\tl_show_analysis:N \l_ex_task_tl --
+%	COUNT(inside): \tl_count:N \l_ex_task_tl --
+%	Head:~\tl_head:N \tl_extask;
+%	Tail:~\tl_tail:N \tl_extask;
+%	\par
+%%%%% END TEST LINE
+	\group_end:
+%%%%% BEGIN TEST LINE
+%	COUNT(outside): \tl_count:N \l_ex_task_tl \par
+%%%%% END TEST LINE
+}
+
+%%%%%%%
+% Internal Makro: Pick particular item from a token list: 
+%    http://tex.stackexchange.com/questions/ 101833/latex3-how-to-get-reliable-control-over-the-level-of-expansion
+%  - #1 = original token list; 
+%  - #2 = new token list; 
+%  - #3 = item to extract
+\tl_new:N \l_ex_tmpc_tl
+\seq_new:N \l_ex_tmpa_seq
+
+\cs_new_protected:Npn \ex_get_item:NNn #1 #2 #3
+	{
+		\seq_set_split:NnV \l_ex_tmpa_seq { } #1
+		\tl_set:Nx #2 { {\seq_item:Nn \l_ex_tmpa_seq { #3 }} }
+	}
+
+%%%%%%%
+% User-Level Macro: Print desired Exercise: Parameter - Exercise identifier
+%  - star or no star: hide starred exercises if stud option is true
+\NewDocumentCommand{\PrintExercise}{ s m m }
+	{
+		\IfBooleanTF\l_ex_studversion_bool
+		{	% If in student's version
+			\IfBooleanTF#1
+			{	% do not print starred exercises
+			} {	% but all others
+				\ex_print:nn {#2}{#3}
+			}
+		} {	% in normal version print all exercises
+			\ex_print:nn {#2}{#3}
+		}
+	}
+
+%%%%%%%
+% Internal Macro: Firstly generate variant that uses contents of token list, then use variant of str_case
+% check how token lists are saved internally
+\cs_generate_variant:Nn \str_case:nnF { nVF }
+%\cs_generate_variant:Nn \tl_show_analysis:N { n }
+\cs_generate_variant:Nn \iow_now:Nn { Nv }
+\cs_generate_variant:Nn \iow_now:Nn { Nx }
+
+%\NewDocumentCommand{\ShowAnalysisN}{ m }
+%	{
+%		\tl_show_analysis:N #1
+%	}
+%
+%\NewDocumentCommand{\ShowAnalysisn}{ m }
+%	{
+%		\tl_show_analysis:n { #1 }
+%	}
+
+%%%%%%%
+% Internal Variable for Writing temporary file
+\iow_new:N \ex_tmp_iow
+
+%%%%%%%
+% Internal Macro: Copy exercise from property list to file and read this one
+\cs_new:Npn \ex_print:nn #1#2
+{
+	% extract exercese #2 from exercise list #1
+	\group_begin:
+	\obeylines
+	\prop_get:NnN \ex_task_list_prop {#1} \l_tmpa_tl
+	\tl_gset_eq:NN \l_ex_task_tl \l_tmpa_tl
+	\group_end:
+
+	% if id #2 not contained in list #1, return message instead
+	\tl_set:Nf \l_tmpa_tl	
+	{\str_case:nVF { #2 }
+		{
+			\l_ex_task_tl
+		}
+		{
+			Exercise~#2~in~list~#1~not~found. 
+		}
+	}
+
+	% solution for from elegant: 
+	%	* change catcodes in \l_tmpa_tl to hide makros
+	%   * 
+	% write entire exercise with changed catcodes to temporary fie and input that file
+	\iow_open:Nn \ex_tmp_iow {exc.tmp}
+	\group_begin:
+	\regex_replace_all:nnN { [\^^M] } { \cLE \cLx \cLC \cLo \cLl \cLl \cLN \cLL  } \l_tmpa_tl%	\catcode`\^^M\active
+%	\obeylines
+%	\tl_if_in:NnTF \l_tmpa_tl { ExCollNL } { \iow_log:n {Is DRIN} DRIN } { \iow_log:n {Nich DA} NIX }
+	\seq_set_split:NnV \l_tmpa_seq { ExCollNL } \l_tmpa_tl
+%%%%%%%%%%%%% TEST LINES BEGIN
+%	\tl_count:N \l_tmpa_seq
+%	\tl_to_str:N \l_tmpa_seq
+%	\seq_show:N \l_tmpa_seq
+%%%%%%%%%%%%% TEST LINES END
+	\bool_if:NTF \l_ex_print_identifier_bool
+		{	% if identifier should be printed, do so
+			\ex_printsource:nn { #1 } { #2 }
+		} { }
+
+	\seq_map_inline:Nn \l_tmpa_seq
+		{	% write catcodes sequence to file
+			\iow_term:n { ##1 }
+			\iow_now:Nn \ex_tmp_iow { ##1 }
+%			\iow_newline:
+		}
+	\iow_close:N \ex_tmp_iow
+	% read file temporary file and put contents to input stream
+	\file_input:n {exc.tmp}
+%	\iow_now:NV \ex_tmp_iow \l_tmpa_tl
+	\group_end:
+}
+
+%%%%%%%
+% Print Source and Identifier
+% ex@source environment defined in envs
+\cs_new:Npn \ex_printsource:nn #1#2
+{
+	\iow_now:Nn \ex_tmp_iow { \begin{ex@source} }
+	\iow_now:Nn \ex_tmp_iow { Exercise-ID~\ttfamily #2 ~\normalfont in~File~\ttfamily }
+	\iow_now:Nv \ex_tmp_iow { g__source_#1_tl }
+	\iow_now:Nn \ex_tmp_iow { \end{ex@source} }
+}
+	
+
+%%%%%%%%%%%%%%%%%%%%%%%
+% Manage Solution and Material Files
+%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%%%%%%%%%%
+% Initialisation of solution and additional material files
+\newif\ifex@filenotregistered
+\ex@filenotregisteredtrue
+\newif\ifmat@filenotregistered
+\mat@filenotregisteredtrue
+\DeclareExpandableDocumentCommand{\IniFiles}{}
+	{	% solution file first
+		\ifex@filenotregistered
+			\newwrite\ex@file
+			\ex@filenotregisteredfalse
+		\fi
+		\immediate\openout\ex@file=\jobname.sol
+		% additional material file second
+		\ifmat@filenotregistered
+			\newwrite\mat@file
+		\mat@filenotregisteredfalse
+		\fi
+		\immediate\openout\mat@file=\jobname.add
+	}
+
+
+\ExplSyntaxOn
+
+%%%%%%%
+% Check for empty or blank contents
+\DeclareExpandableDocumentCommand{\IfNoValueOrEmptyTF}{mmm}
+{
+	\IfNoValueTF{#1}{#2}{ \tl_if_blank:nTF {#1} {#2} {#3} }
+}
+
+%%%%%%%
+% check if contents is empty, just for demonstrtation purpose
+\cs_new:Npn \demo:n #1
+  {
+    \tl_count:n {#1} ;
+    \tl_if_empty:nT {#1} { Empty! }
+    \tl_if_blank:nTF {#1}
+      { Blank! }
+      {
+        Head = \tl_head:n {#1} ;
+        Tail = \tl_tail:n {#1} ;
+        End
+      }
+  }
+\cs_new_eq:NN \demo \demo:n
+%\newcommand*{\hello}{hello}
+
+
+%%%%%%%%%%%%%
+% makro to print the separately collected solutions
+\ExplSyntaxOn
+\newcommand*{\includesolutions}{%
+	\immediate\closeout\ex@file
+	\section*{\l_ex_solutiontitle_tl}
+	\InputIfFileExists{\jobname.sol}{}{}}
+
+
+%%%%%%%%%%%%%
+% makro to print the separately collected additional material
+\newcommand*{\includematerials}{%
+	\immediate\closeout\mat@file
+	\section*{\l_ex_addmaterialtitle_tl}
+	\InputIfFileExists{\jobname.add}{}{}}
+\ExplSyntaxOff
+
+%%%%%%%%%%%%%
+% Provide helper makro: get the name of the exercise
+\ExplSyntaxOn
+\NewDocumentCommand{\getExerciseName}{ m }{	\ex_getname:v { #1 } }
+
+%%%%%%%
+% Internal Macro: Read File and save to token list
+%\cs_generate_variant:Nn \tl_head:n {w}
+\cs_new:Npn \ex_getname:n #1
+{
+	\tl_head:f {\tl_reverse:n {#1}}
+}
+
+\cs_generate_variant:Nn \ex_getname:n {v}
+\cs_generate_variant:Nn \ex_getname:n {V}
+
+\ExplSyntaxOff
+
+
+\newcommand*{\includeinfos}{%
+	\renewenvironment{infos}{\paragraph{Informationen}}{}}
+
+\endinput

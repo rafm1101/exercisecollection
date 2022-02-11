@@ -1,0 +1,40 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Stilvorlage für Aufgabenumgebung für Übungsblätter
+%		zum Paket exercisecollection v0.2 vom 27.12.2014
+%
+% Mathias Rafler
+%		rafler@math.tu-berlin.de
+%
+%%%%%%%%%%%%%%%%%%%%%%%
+%
+%	Baut auf Paket AMSThm auf; hier sind zu erledigen:
+%		1. Stil der Umgebung via \newtheoremstyle
+%		2. Aufgabenumgebung erstellen
+%		3. \extype definieren
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newtheoremstyle{styAufgabe} % name of the style to be used
+  {3Em plus 1Em minus 1Em}   % measure of space to leave above the theorem. E.g.: 3pt
+  {3Em plus 1Em minus 1Em}   % measure of space to leave below the theorem. E.g.: 3pt
+  {}   % name of font to use in the body of the theorem
+  {}   % measure of space to indent
+  {\normalfont\bfseries\sffamily}   % name of head font
+  {}   % punctuation between head and body
+  {\newline}   % space after theorem head; " " = normal interword space
+  {\thmname{#1} \thmnumber{#2} \thmnote{#3}}%{\thmnumber{#2} \thmname{#1}\thmnote{ (#3)}}   % Manually specify head
+
+\theoremstyle{styAufgabe}
+
+\newtheorem{hausaufgabe}{Hausaufgabe}[section]
+\newtheorem{hausaufgabestern}[hausaufgabe]{Hausaufgabe${}^\ast$}%[hausaufgabe]
+\newtheorem{tafelaufgabe}{Tafelaufgabe}[section]
+\newtheorem{tutoriumsaufgabe}{Tutoriumsaufgabe}[section]
+\newtheorem{aufgabe}{Aufgabe}[section]
+
+\newtheorem{homework}{Homework}[section]
+\newtheorem{homeworkstar}[hausaufgabe]{Homework${}^\ast$}%[hausaufgabe]
+\newtheorem{tutorialexercise}{Tutorial exercise}[section]
+\newtheorem{cmonexercise}{Exercise}[section]
+%\renewcommand{\extype}{hausaufgabe}

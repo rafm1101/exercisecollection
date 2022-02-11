@@ -1,0 +1,472 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  Paket für Aufgabensammlungen
+%
+%		exercisecollectionenvs.sty
+%		v2.0 vom 06.02.2022
+%
+%		Mathias Rafler
+%			mrafler@o2mail.de
+%
+%	! Alles noch im Teststadium, dementsprechend auf seltsame Verhaltensweisen gefaßt sein
+% ! Check for Updates
+%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Environments for the package exercisecollection
+%		- exercise
+%		- solution
+%		- sketch
+%		- info
+%		- addmaterial
+% TODO: - Konsequent auf LaTeX3 umstellen, zumindest Verquickung von LaTeX3 und LaTeX2e 
+% 		  reduzieren
+%
+% DONE: (v1.0) 	- Ausgabe des Schluessels falls gewuenscht (Standard: keine Ausgabe)
+%				- Ausgabe der Info falls gewuenscht (Standard: keine Ausgabe)
+%%%%%%%%%%%%%%%%%%%%%%%
+
+\NeedsTeXFormat{LaTeX2e}% LaTeX 2.09 can't be used (nor non-LaTeX)
+[1994/12/01]% LaTeX date must December 1994 or later
+\ProvidesPackage{exercisecollectionenvs}[2022/02/06 v2.0 LaTeX package Exercise Collection Environments]
+
+\RequirePackage{amsthm}
+\RequirePackage{verbatim}
+\RequirePackage{framed}
+
+%%%%%%%%%%%%%%%%%%%%%%%
+% Initialize Package
+%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%%%%%%%%%%%%%
+% Prepare theorem environments to declare exercise environments:
+%  - define style styExercise
+%  - decare theorem environment exc as default
+%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%%%%%%%%%%
+% Predefined dummy style and set as standard
+\newtheoremstyle{styExercise} % name of the style to be used
+	{1.3Em plus 1Em minus 1Em}   % measure of space to leave above the theorem. E.g.: 3pt
+	{1.3Em plus 1Em minus 1Em}   % measure of space to leave below the theorem. E.g.: 3pt
+	{}   % name of font to use in the body of the theorem
+	{}   % measure of space to indent
+	{\normalfont\bfseries}   % name of head font
+	{}   % punctuation between head and body
+	{\newline}   % space after theorem head; " " = normal interword space
+	{\thmname{#1} \thmnumber{#2} \thmnote{#3}}%{\thmnumber{#2} \thmname{#1}\thmnote{ (#3)}}   % Manually specify head
+\theoremstyle{styExercise}
+
+%%%%%%%%%%%%%%%%%%%%
+% set theorem named Exercise to be enumerated within section
+\newtheorem{exc}{Exercise}[section]
+
+
+%%%%%%%%%%%%%%%%%%%%
+% following environment is used for printing the source/information part
+\NewDocumentEnvironment{ ex@source }{  }{
+	%\addvspace{0Em plus 1Em minus 2Em}	
+	\begin{framed} %shaded* bracuht Paket color oder xcolor
+} {
+	\end{framed}
+	%\addvspace{0Em plus 1Em minus 2Em}	
+}
+
+%%%%%%%%%%%%%%%%%%%%
+% wrapper environments for solutions, sketches and additional material
+% control spacing of these environments exactly here
+\newcommand{\theoremheadfont}{\normalfont\bfseries\sffamily}
+\newenvironment{ex@solution}[1]{%
+	\vspace{-\lastskip}\par\addvspace{\topsep}%
+	\noindent{\theoremheadfont #1.}}{%
+	\par\addvspace{2Em plus 1Em minus 1Em}}
+
+\newenvironment{ex@sketch}[1]{%
+	\vspace{-\lastskip}\par\addvspace{\topsep}%
+	\noindent{\theoremheadfont #1.}}{%
+	\par\addvspace{2Em plus 1Em minus 1Em}}
+
+\newenvironment{add@material}[1]{%
+	\vspace{-\lastskip}\par\addvspace{\topsep}%
+	\noindent{\theoremheadfont #1.}}{%
+	\par\addvspace{2Em plus 1Em minus 1Em}}
+
+%%%%%%%%%%%%%%%%%%%%%%%
+% Exercise-Umgebung
+%%%%%%%%%%%%%%%%%%%%%%%
+	
+%%%%%%%%%%%%%%%%%%%%
+% Define exercise environment with two parameters
+%	- #1: name of exercise, empty if there should be no headline
+%	- #2: rewarded points or any other information for the headline
+%	both contained in curly braces
+% Prepare calling the theorem environment
+\ExplSyntaxOn
+% Variant for writing contents of token to terminal
+\cs_generate_variant:Nn \iow_term:n { V }
+
+%%%%%%%%%%%%%%%%%%%%
+% exercise environment that wraps the contents in the currently active theorem environment
+% for constructing the token list, see http://tex.stackexchange.com/questions/145085/expl3-tl-put-rightnx-chokes-on
+\NewDocumentEnvironment{exercise}{mm}{% actions exercised before printing the contents
+%%%%% OLD CODE BEGIN
+%	\newtoks\@tmp
+%	\@tmp{\begin{\extype}[}
+%%%%% OLD CODE END (replaced by next line)
+	\tl_set:Nx \l_tmpa_tl { \exp_not:N \begin { \l_ex_extype_tl }[ }
+	\iow_term:V \l_tmpa_tl
+	% construct the header of the exercise (name)
+	\IfNoValueOrEmptyTF{#1}%
+		{ 	% exercise has no name
+		}{ 	% exercise has a name
+%%%%% OLD CODE BEGIN
+%			\@tmp=\expandafter{\the\@tmp{(#1)\hspace*{\fill}}}
+%%%%% OLD CODE END (replaced by next line)
+			\tl_put_right:Nx \l_tmpa_tl { (#1) \exp_not:N \hspace* {\exp_not:N \fill} }
+		}
+	% construct the header of the exercise (points)
+	\IfNoValueOrEmptyTF{#2}%
+		{ % no points
+%%%%% OLD CODE BEGIN
+%			\@tmp=\expandafter{\the\@tmp]}
+%%%%% OLD CODE END (replaced by next line)
+			\tl_put_right:Nx \l_tmpa_tl { ] }
+		}
+		{ % points given
+			\bool_if:NTF \l_ex_points_bool
+				{  % given point shall be printed
+%%%%% OLD CODE BEGIN
+%				\@tmp=\expandafter{\the\@tmp{\hfill\normalfont\itshape #2}]}
+%%%%% OLD CODE END (replaced by next line)
+					\tl_put_right:Nx \l_tmpa_tl { \exp_not:N \hfill \exp_not:N \normalfont \exp_not:N \sffamily \exp_not:N \itshape #2 ] }
+				}{ % given point shall not be printed
+%%%%% OLD CODE BEGIN
+%				\@tmp=\expandafter{\the\@tmp]}
+%%%%% OLD CODE END (replaced by next line)
+					\tl_put_right:Nx \l_tmpa_tl { ] }
+				}
+		}
+%%%%% OLD CODE BEGIN
+%		\the\@tmp
+%		\iow_term:V \@tmp
+%%%%% OLD CODE END (replaced by next line)
+		\tl_use:N \l_tmpa_tl
+		\bool_gset_false:N \ex_solution_printed_bool
+		}{% post actions: close environment
+%	\bool_if:NTF \ex_solution_printed_bool { SOL~PRN } { SOL~NOT~PRN }
+	\tl_set:Nx \l_tmpa_tl { \exp_not:N \end { \l_ex_extype_tl } }
+	\tl_use:N \l_tmpa_tl
+%%%%% OLD CODE BEGIN
+%	\end{\extype}
+%%%%% OLD CODE END (replaced previous line)
+}
+
+%%%%%%%%%%%%%%%%%%%%
+% Flags und Switches - to be made obsolete
+\newcommand{\points}{\let\ifpoints\iftrue}
+\newcommand{\nopoints}{\let\ifpoints\iffalse}
+\newcommand{\nosketch}{\let\ifsketch\iffalse}
+
+%%%%%%%%%%%%%
+% solution environment
+\ExplSyntaxOn
+
+\bool_new:N \ex_solution_printed_bool
+\bool_set_false:N \ex_solution_printed_bool
+
+\cs_generate_variant:Nn \str_case:nn { Vn }
+\cs_generate_variant:Nn \str_case:nnTF { VnTF }
+\cs_generate_variant:Nn \tl_show:n { o }
+\cs_generate_variant:Nn \tl_show_analysis:n { o }
+
+%%%%%%%%%%%%%
+% switch for the currently active preference of where to print the solution
+\newcommand*{\solution}{\@bsphack
+	\str_case:VnTF { \l_ex_solution_tl }
+		{	{immediate} {
+				\ex_print_sol_immediate_begin:
+			} {separate} {
+				\ex_print_sol_separate_begin:
+			} {none} {
+				\ex_print_sol_none_begin:
+			} {info} { 
+			
+			}
+		} {} { NOSOLUTION }
+	}
+
+%%%%%%%
+% internal macros
+%\cs_generate_variant:Nn \tl_use:N {V}
+\cs_generate_variant:Nn \iow_now:Nn {NV}
+
+%%%%%%%%%%%%%
+% makro for separate collection of all solutions
+\cs_new:Nn \ex_print_sol_separate_begin:
+	{
+		% need some catcode masking
+		\let\do\@makeother\dospecials
+		\catcode`\^^M\active
+
+		\def\verbatim@processline{%
+			\immediate\write\ex@file{\the\verbatim@line}%
+			}%
+			
+	\ex_build_sol_param:n {sol}
+	\tl_set:Nx \l_tmpb_tl { \exp_not:N \begin {ex@solution}{ \exp_not:V \l_tmpa_tl } }
+%%%%% OLD CODE REPLACED BY TWO LINES ABOVE AND ONE BELOW
+%	\immediate\write\ex@file{\exp_args:NV \string \exp_not:N \l_ex_extype_tl}
+%		\immediate\write\ex@file{%
+%			\string\begin{ex@solution}{\solutionname~\getExerciseName{\l_ex_extype_tl}~\csname the\l_ex_extype_tl\endcsname}}
+%%%%% OLD CODE END
+		\iow_now:NV \ex@file \l_tmpb_tl
+		\verbatim@start
+	}
+
+%%%%%%%%%%%%%
+% makro for immediate prints of solutions
+\cs_new:Nn \ex_print_sol_immediate_begin:
+	{
+	\ex_build_sol_param:n {sol}
+	\tl_set:Nx \l_tmpb_tl { \exp_not:N \begin {ex@solution}{ \exp_not:V \l_tmpa_tl } }
+		\tl_use:N \l_tmpb_tl
+%%%%% OLD CODE BEGIN
+%		\begin{ex@solution}{\getExerciseName{\extype}~\csname the\extype\endcsname}
+%%%%% OLD CODE END
+	}
+
+%%%%%%%%%%%%%
+% makro for printing solution to trash
+\cs_new:Nn \ex_print_sol_none_begin:
+	{
+		\let\do\@makeother\dospecials
+		\catcode`\^^M\active
+		\def\verbatim@addtoline##1{%
+			\verbatim@line\expandafter{\the\verbatim@line##1}}
+		\def\verbatim@processline{%
+			\relax}%
+		\verbatim@start
+	}
+
+%%%%%%%%%%%%%
+% makro for end of solution environment
+\def\endsolution{%
+	\str_case:Vn { \l_ex_solution_tl }
+		{	{immediate} { 
+				\bool_gset_true:N \ex_solution_printed_bool 
+				\end{ex@solution}
+			} {separate} {
+				\bool_gset_true:N \ex_solution_printed_bool 
+				\immediate\write\ex@file{%
+					\string\end{ex@solution}}%
+				\global\nosketch
+			} {none} { 
+			} {info} {
+			}
+	}
+	\@esphack}
+
+%%%%%%%%%%%%%
+% switch for the currently active preference of where to print the sketch
+\newcommand*{\sketch}{\@bsphack
+	\tl_set_eq:NN \l_ex_repl_sketch_sol_tl \l_ex_sketch_tl
+	\str_case:VnTF { \l_ex_repl_sketch_sol_tl }
+		{	{immediate} {
+				\ex_print_ske_immediate_begin:
+			} {separate} {
+				\ex_print_ske_separate_begin:
+			} {none} {
+				\ex_print_ske_none_begin:
+			} {info} { 
+				\immediate\write\ex@file{%
+					\string\vspace{-\the\lastskip}%\string\par%
+					\string\addvspace{\the\topsep}
+					\string\noindent{\string\theoremheadfont
+					\space\string\sketchname ~\getExerciseName{\extype} ~\string\csname the\extype\endcsname\string~existiert}}%			
+			}
+		} {} { NOSKETCH }
+	}
+
+%%%%%%%%%%%%%
+% makro for separate collection of all solution sketches
+\cs_new:Nn \ex_print_ske_separate_begin:
+	{
+		% need some catcode masking
+		\let\do\@makeother\dospecials
+		\catcode`\^^M\active
+
+		\def\verbatim@processline{%
+			\immediate\write\ex@file{\the\verbatim@line}%
+			}
+
+		\ex_build_sol_param:n {ske}
+		\tl_set:Nx \l_tmpb_tl { \exp_not:N \begin {ex@sketch}{ \exp_not:V \l_tmpa_tl } }
+		\iow_now:NV \ex@file \l_tmpb_tl
+		\verbatim@start
+	}
+
+%%%%%%%%%%%%%
+% makro for immediate prints of sketches
+\cs_new:Nn \ex_print_ske_immediate_begin:
+	{
+		\ex_build_sol_param:n {ske}
+		\tl_set:Nx \l_tmpb_tl { \exp_not:N \begin {ex@sketch}{ \exp_not:V \l_tmpa_tl } }
+		\tl_use:N \l_tmpb_tl
+	}
+
+%%%%%%%%%%%%%
+% makro for printing sketch to trash
+\cs_new:Nn \ex_print_ske_none_begin:
+	{
+		\let\do\@makeother\dospecials
+		\catcode`\^^M\active
+		\def\verbatim@processline{%
+			\relax}%
+		\verbatim@start
+	}
+
+	
+%%%%%%%%%%%%%
+% makro for end of sketch environment
+\def\endsketch{%
+	\str_case:Vn { \l_ex_repl_sketch_sol_tl }
+		{	{immediate} { 
+				\end{ex@sketch}
+			} {separate} {
+				\bool_gset_true:N \ex_solution_printed_bool 
+				\immediate\write\ex@file{%
+					\string\end{ex@sketch}}%
+				\global\nosketch
+			} {none} { 
+			} {info} {
+			}
+	}
+	\@esphack}
+
+%%%%%%%%%%%%%
+% check in case of enabled solutions if a missing solution can be replaced by a sketch
+\cs_new:Npn \ex_sketch_sol_replacement:nn #1#2
+	{
+		\tl_clear_new:N \l_ex_repl_sketch_sol_tl
+		\tl_set:NV \l_ex_repl_sketch_sol_tl { #2 }
+		\bool_if:NT \ex_replace_missing_sol_bool
+			{
+				\bool_if:NF \ex_solution_printed_bool
+					{
+						\tl_set:NV \l_ex_repl_sketch_sol_tl { #1 }
+					}
+			}
+	}
+
+%%%%%%%%%%%%%
+% build the header of the printed solutions
+\cs_new:Npn \ex_build_sol_param:n #1
+	{
+	\tl_set:Nv \l_tmpa_tl {l_ex_#1name_tl}
+	\iow_term:V \l_tmpa_tl
+	\tl_put_right:Nn \l_tmpa_tl {~}
+	\tl_set:Nf \l_tmpb_tl {\getExerciseName{\l_ex_extype_tl}}
+	\tl_put_right:NV \l_tmpa_tl \l_tmpb_tl
+	\iow_term:V \l_tmpa_tl
+	\tl_put_right:Nn \l_tmpa_tl {~}
+	\tl_put_right:Nx \l_tmpa_tl {\tl_use:c {the\l_ex_extype_tl}}
+	\iow_term:V \l_tmpa_tl
+	}
+
+\ExplSyntaxOff
+
+
+%%%%%%%%%%%%%
+% makro for printing the additional information - no need for collecting these information externally
+\ExplSyntaxOn
+%\NewDocumentEnvironment{ infos }{  }{
+%	\bool_if:NTF \l_ex_information_bool { 
+%			%\addvspace{0Em plus 1Em minus 2Em}	
+%			\begin{framed} %shaded* braucht Paket color oder xcolor
+%		} { 
+%			\@bsphack
+%			\let\do\@makeother\dospecials
+%			\catcode`\^^M\active
+%			\let\verbatim@startline\relax
+%			\let\verbatim@addtoline\@gobble
+%			\let\verbatim@processline\relax
+%			\let\verbatim@finish\relax
+%			\verbatim@start
+%		}
+%} {
+%	\bool_if:NTF \l_ex_information_bool { 
+%			\end{framed}
+%			%\addvspace{0Em plus 1Em minus 2Em}	
+%		} { 
+%			\@esphack
+%	`	}
+%}
+
+\newcommand*{\infos}{%
+	\bool_if:NTF \l_ex_print_information_bool {% 
+			%\addvspace{0Em plus 1Em minus 2Em}	
+			\begin{leftbar} %shaded* braucht Paket color oder xcolor
+		} {%
+			\@bsphack
+			\let\do\@makeother\dospecials
+			\catcode`\^^M\active
+			\let\verbatim@startline\relax
+			\let\verbatim@addtoline\@gobble
+			\let\verbatim@processline\relax
+			\let\verbatim@finish\relax
+			\verbatim@start
+		}}
+
+% define end of info environment
+\def\endinfos{%
+	\bool_if:NTF \l_ex_print_information_bool {%
+			\end{leftbar}
+			%\addvspace{0Em plus 1Em minus 2Em}	
+		} {%
+			\@esphack%
+		}%
+}
+\ExplSyntaxOff
+
+%%%%%%%%%%%%%%%%%%%%%%%
+% environment for additiona material
+%%%%%%%%%%%%%%%%%%%%%%%
+\ExplSyntaxOn
+%%%%%%%%%%%%%
+% Definiere Anfang Material, das alles extern schreibt
+\newcommand*{\material}{\@bsphack
+	\let\do\@makeother\dospecials
+	\catcode`\^^M\active
+	\def\verbatim@processline{%
+		\immediate\write\mat@file{\the\verbatim@line}}%
+		\ex_build_mat:
+		\tl_set:Nx \l_tmpb_tl { \exp_not:N \begin {add@material}{ \exp_not:V \l_tmpa_tl } }
+		\iow_now:NV \mat@file \l_tmpb_tl
+		\verbatim@start
+	}
+%	\immediate\write\ex@file{%
+%		\string\begin{add@material}{\csname the\extype\endcsname}}%
+%	\verbatim@start}
+
+%%%%%%%%%%%%%
+% build the header of the printed solutions
+\cs_new:Npn \ex_build_mat:
+	{
+	\tl_set:Nv \l_tmpa_tl {l_ex_matname_tl}
+	\iow_term:V \l_tmpa_tl
+	\tl_put_right:Nn \l_tmpa_tl {~}
+	\tl_set:Nf \l_tmpb_tl {\getExerciseName{\l_ex_extype_tl}}
+	\tl_put_right:NV \l_tmpa_tl \l_tmpb_tl
+	\iow_term:V \l_tmpa_tl
+	\tl_put_right:Nn \l_tmpa_tl {~}
+	\tl_put_right:Nx \l_tmpa_tl {\tl_use:c {the\l_ex_extype_tl}}
+	\iow_term:V \l_tmpa_tl
+	}
+
+
+% Definiere Ende Material
+\def\endmaterial{%
+	\immediate\write\mat@file{%
+		\string\end{add@material}}\@esphack}
+
+\ExplSyntaxOff

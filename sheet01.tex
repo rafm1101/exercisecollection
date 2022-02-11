@@ -1,0 +1,104 @@
+\documentclass{exercisesheet}
+
+%%%%%%%%%%%%%%%%%
+% Course, default values provided
+\setVeranstaltung{Euclidean geometry}
+\setSemester{Winter term 2022}
+%\setVerein{Mouseion at Alexandria}
+%\setverein{Musaeum}
+%\setSektion{Faculty of Geometry}
+%\setsektion{Institute of Geometry}
+\setDozent{Aristarch}
+\setAssistent{Arthur-Dieter}
+\setBlattnummer{1}
+%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%
+% load exercise collection package with the style definitions of exercises
+\usepackage[blatt]{exercisecollection}
+%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%
+%\hypersetup{colorlinks=true, urlcolor=blue}
+%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+%%%%%%%%%%%%%
+% print header and title
+\Kopf
+\Titel[Exercises]<published: 27.04. -- due to 11.05.>
+%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%
+% if any contents follows at the end, initialise temporary files
+% needs to be called after \includesolutions and \includematerials if further separate solutions/materials need to be collected
+\IniFiles
+%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%
+% Preferences, the keys are
+%	- extype: style of exercise, can be changed at any point (default: exc)
+%	- points: show points (true/false)
+%	- solution: where to print solutions (immediate/separate/none/info)
+%	- solutionname: printed name
+%	- sketch: where to print sketches of solutions (immediate/separate/none/info)
+%	- sketchname: printed name
+%   - solutiontitle: printed title for the separate solutions and sketches
+%   - addmaterialname: printed name
+%   - addmaterialtitle: printed title for the separate additional material
+\SetExCollProp{extype=tutorialexercise,
+		sketch=separate,
+		solution=separate,
+		points=false,
+		solutionname=Solution~of,
+		sketchname=Sketch~of,
+		solutiontitle=Solutions,
+		addmaterialtitle=Additional~material,
+		addmaterialname=Ad}
+% preferences can be changes at any place
+%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%
+% load any number of repositories, hand over a unique id and name of file/path to file
+\LoadExerciseFile{elem01}{exc-the-elements-01}
+%\LoadExerciseFile{elem02}{../repo/exc-the-elements-02}
+%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%
+% print exercises, use the id of the repository from above and the exercise id
+\PrintExercise{elem01}{equi-tri}
+\PrintExercise{elem01}{unique-id}
+%%%%%%%%%%%%%
+
+%\newpage
+
+%%%%%%%%%%%%%
+% print another block of exercises
+\SetExCollProp{extype=homeworkstar,points=true}
+\SetExCollProp{sketch=none, solution=none}
+\PrintExercise{elem01}{unique-id}
+%%%%%%%%%%%%%
+
+
+
+%%%%%%%%%%%%%
+% print optional exercises
+% \emph{The following exercises are optional. Any achieved reward is added to your score.}
+% \SetExCollProp{extype=hausaufgabestern}
+% \PrintExercise{einstieg}{nachbarin}
+%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%%%
+% include the additiona material for these exercises
+\includematerials
+%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%
+% Print separate solutions - unnecessary if preferences for solutions/sketches is none/info/immediate
+ \newpage
+ \includesolutions
+%%%%%%%%%%%%%
+
+\end{document}

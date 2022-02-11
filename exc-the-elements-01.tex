@@ -1,0 +1,81 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% The elements: Exercises from Eucid's book
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Course: Geometry
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% date 02/08/2022
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%%%%%%%%%%%%%
+% equilateral triangle
+%%%%%%%%%%%%%%%%%%%%%%%
+{equi-tri}
+{
+\begin{exercise}{Existence of an equilateral triangle}{10 Punkte}
+Prove the following proposition:
+\begin{itemize}
+	\item On a given finite straight line to describe an equilateral triangle.
+\end{itemize}
+
+\begin{infos}
+\cite[01-Prop 01]{EE01}
+\end{infos}
+
+\begin{material}
+You may need the following definitions and postulates:
+\begin{itemize}
+	\item \emph{Definition 15:} A circle is a plane figure, bounded by one continued line, called its \emph{circumference} or \emph{periphery}; and having a certain point within it, from which all straight lines drawn to its cercumference are equal.
+	\item \emph{Postulate 1:} Let it be granted that a straight line may be drawn from an one point to any other point.
+	\item \emph{Postulate 3:} Let it be granted that a circle may be described with any centre at any difference from that centre.
+\end{itemize}
+\end{material}
+
+\begin{solution}
+Draw two circles around either point of the straight line with radius given by the line itself. Both exist due to Postulate 3. Both circles intersect in two points, choose any of them, and draw two straight lines from the chosen points to each of the two centres. Both lines exist and are unique due to Postulate 1.
+
+It remains to show that the constructed triangle is equilateral. But by Definition 15, the given straight line's length equals the length of any of the two others for they are the radii of the two circles. Hence, all straight lines are equal in length.
+\end{solution}
+
+\begin{sketch}
+Construct two circles centred at any of the end points of the straight line, choose one of the two intersections of the circles, then this point together with the two centres form a triangle. It remains to prove that the all triangle's faces equal in length.
+\end{sketch}
+
+\end{exercise}
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%
+{unique-id}
+{
+\begin{exercise}{Title}{Some quantity of points}
+\neuezeile
+\begin{enumerate}
+	\item An exercise without a text between the headline and the enumerate environment.
+	\item A second item.
+\end{enumerate}
+
+\begin{infos}
+Some information related to the exercise like difficulty or audience.
+\end{infos}
+
+\begin{material}
+Something I've been wanting to write.
+\end{material}
+
+\begin{sketch}
+\begin{enumerate}
+	\item a sketch of a solution
+	\item a sketch of a solution
+\end{enumerate}
+\end{sketch}
+
+\end{exercise}
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%
+% next topic
+%%%%%%%%%%%%%%%%%%%%%%%
